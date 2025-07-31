@@ -140,7 +140,12 @@ function listenForTeamUpdates(teamDocID, room) {
         if (data.betLocked === true) {
           setUIState("locked");
         } else {
-          setUIState("betting");
+          // Only set to betting if timer is active
+          if (timerRunning) {
+            setUIState("betting");
+          } else {
+            setUIState("locked", "🔒 Bet Section Locked");
+          }
         }
       }
 
@@ -201,6 +206,11 @@ function listenForQuestion(room, teamName) {
     if (!question.timerActive && questionActive && !timerRunning) {
       setUIState("locked", "🔒 Bet Section Locked");
       questionActive = false;
+    }
+
+    // Additional check: if timer is inactive and questionActive is false, ensure betting UI is hidden
+    if (!question.timerActive && !questionActive) {
+      setUIState("locked", "🔒 Bet Section Locked");
     }
   });
 }
@@ -337,7 +347,9 @@ function startUserCountdown(startTime, teamName, room) {
 
   userTimer = setInterval(() => {
     const elapsed = Date.now() - startTime.getTime();
-    const remaining = Math.max(0, Math.floor((30 * 1000 - elapsed) / 1000));
+    let remaining = Math.ceil((30 * 1000 - elapsed) / 1000);
+    remaining = Math.min(remaining, 30);
+    remaining = Math.max(0, remaining);
 
     countdownEl.textContent = `⏳ Time Left: ${remaining}s`;
 
