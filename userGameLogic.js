@@ -6,10 +6,10 @@ loginBtn.addEventListener("click", async () => {
   const enteredPass = document.getElementById("Password").value.trim();
 
   if (!enteredID || !enteredPass) {
-    alert("Please enter username and password.");
+    alert("Please enter both username and password.");
     return;
   }
-
+  
   const rooms = ["Room1", "Room2", "Room3", "Room4", "Room5", "Room6", "Room7"];
 
   let loginSuccess = false;
@@ -18,19 +18,20 @@ loginBtn.addEventListener("click", async () => {
 
   try {
     for (const room of rooms) {
+      console.log(`Checking room: ${room}`);
       const teamsRef = db.collection("Tech-Orbit").doc(room).collection("Teams");
       const snapshot = await teamsRef.get();
 
       snapshot.forEach(doc => {
         const data = doc.data();
+        console.log(`Checking teamID: '${data.teamID}', enteredID: '${enteredID}'`);
+        console.log(`Checking password: '${data.password}', enteredPass: '${enteredPass}'`);
         if (data.teamID === enteredID && data.password === enteredPass) {
           loginSuccess = true;
           loggedTeam = { name: data.teamName || doc.id, id: doc.id, points: data.points };
           loggedRoom = room;
         }
       });
-
-      if (loginSuccess) break;
     }
 
     if (!loginSuccess) {
@@ -237,33 +238,45 @@ const betAmountDisplay = document.getElementById("bet-amount");
 const warning = document.getElementById("bet-warning");
 
 function updateBetDisplay() {
-  betAmountDisplay.textContent = betAmount;
+  if (betAmountDisplay) {
+    betAmountDisplay.textContent = betAmount;
+  }
 }
 
 function getCurrentPoints() {
-  return parseInt(document.getElementById("current-points").textContent);
+  const pointsEl = document.getElementById("current-points");
+  if (pointsEl) {
+    return parseInt(pointsEl.textContent) || 0;
+  }
+  return 0;
 }
 
-document.getElementById("increase-bet").addEventListener("click", () => {
-  const maxBet = getCurrentPoints();
-  if (betAmount + 10 <= maxBet) {
-    betAmount += 10;
-    updateBetDisplay();
-    warning.style.display = "none";
-  } else {
-    alert("⚠️ You cannot bet more than your total points!");
-  }
-});
+const increaseBetBtn = document.getElementById("increase-bet");
+if (increaseBetBtn) {
+  increaseBetBtn.addEventListener("click", () => {
+    const maxBet = getCurrentPoints();
+    if (betAmount + 10 <= maxBet) {
+      betAmount += 10;
+      updateBetDisplay();
+      if (warning) warning.style.display = "none";
+    } else {
+      alert("⚠️ You cannot bet more than your total points!");
+    }
+  });
+}
 
-document.getElementById("decrease-bet").addEventListener("click", () => {
-  if (betAmount > minBet) {
-    betAmount -= 10;
-    updateBetDisplay();
-    warning.style.display = "none";
-  } else {
-    warning.style.display = "block";
-  }
-});
+const decreaseBetBtn = document.getElementById("decrease-bet");
+if (decreaseBetBtn) {
+  decreaseBetBtn.addEventListener("click", () => {
+    if (betAmount > minBet) {
+      betAmount -= 10;
+      updateBetDisplay();
+      if (warning) warning.style.display = "none";
+    } else {
+      if (warning) warning.style.display = "block";
+    }
+  });
+};
 
 function listenForQuizEnd(room, teamName) {
   db.collection("Tech-Orbit").doc(room)
@@ -323,9 +336,8 @@ function startUserCountdown(startTime, teamName, room) {
   timerRunning = true;
 
   userTimer = setInterval(() => {
-    const elapsed = startTime.getTime() - Date.now();
-      let remaining = Math.max(0, Math.floor((30 * 1000 - elapsed) / 1000));
-      remaining = Math.min(remaining, 30);
+    const elapsed = Date.now() - startTime.getTime();
+    const remaining = Math.max(0, Math.floor((30 * 1000 - elapsed) / 1000));
 
     countdownEl.textContent = `⏳ Time Left: ${remaining}s`;
 
@@ -371,7 +383,7 @@ function listenForCurrentQuestionUser(room) {
         `Current Question: ${data.currentQuestion.questionNumber}`;
     } else {
       document.getElementById("user-question-display").textContent =
-        `Current Question: - 1`;
+        `Current Question: 0`;
     }
   });
 }
