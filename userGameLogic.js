@@ -6,24 +6,32 @@ loginBtn.addEventListener("click", async () => {
   const enteredPass = document.getElementById("Password").value.trim();
 
   if (!enteredID || !enteredPass) {
-    alert("Please enter both username and password.");
+    alert("Please enter username and password.");
     return;
   }
 
+  const rooms = ["Room1", "Room2", "Room3", "Room4", "Room5", "Room6", "Room7"];
+
+  let loginSuccess = false;
+  let loggedTeam = null;
+  let loggedRoom = null;
+
   try {
-    const teamsRef = db.collection("Tech-Orbit").doc("Room1").collection("Teams");
-    const snapshot = await teamsRef.get();
+    for (const room of rooms) {
+      const teamsRef = db.collection("Tech-Orbit").doc(room).collection("Teams");
+      const snapshot = await teamsRef.get();
 
-    let loginSuccess = false;
-    let loggedTeam = null;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.teamID === enteredID && data.password === enteredPass) {
+          loginSuccess = true;
+          loggedTeam = { name: data.teamName || doc.id, id: doc.id, points: data.points };
+          loggedRoom = room;
+        }
+      });
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.teamID === enteredID && data.password === enteredPass) {
-        loginSuccess = true;
-        loggedTeam = { name: data.teamName || doc.id, id: doc.id, points: data.points };
-      }
-    });
+      if (loginSuccess) break;
+    }
 
     if (!loginSuccess) {
       alert("❌ Invalid Username or Password");
@@ -40,15 +48,15 @@ loginBtn.addEventListener("click", async () => {
     document.getElementById("current-points").textContent = loggedTeam.points;
 
     sessionStorage.setItem("teamName", loggedTeam.id);
-    sessionStorage.setItem("room", "Room1");
+    sessionStorage.setItem("room", loggedRoom);
 
-    listenForTeamUpdates(loggedTeam.id, "Room1");
-    listenForQuizEnd("Room1", loggedTeam.id);
-    listenForQuestion("Room1", loggedTeam.id);
-    listenForCurrentQuestionUser("Room1");
+    listenForTeamUpdates(loggedTeam.id, loggedRoom);
+    listenForQuizEnd(loggedRoom, loggedTeam.id);
+    listenForQuestion(loggedRoom, loggedTeam.id);
+    listenForCurrentQuestionUser(loggedRoom);
 
     // ✅ Enable real-time presence tracking
-    const teamRef = db.collection("Tech-Orbit").doc("Room1").collection("Teams").doc(loggedTeam.id);
+    const teamRef = db.collection("Tech-Orbit").doc(loggedRoom).collection("Teams").doc(loggedTeam.id);
 
     // Set active = true and update lastSeen immediately
     await teamRef.update({
@@ -315,8 +323,9 @@ function startUserCountdown(startTime, teamName, room) {
   timerRunning = true;
 
   userTimer = setInterval(() => {
-    const elapsed = Date.now() - startTime.getTime();
-    const remaining = Math.max(0, Math.floor((30 * 1000 - elapsed) / 1000));
+    const elapsed = startTime.getTime() - Date.now();
+      let remaining = Math.max(0, Math.floor((30 * 1000 - elapsed) / 1000));
+      remaining = Math.min(remaining, 30);
 
     countdownEl.textContent = `⏳ Time Left: ${remaining}s`;
 
