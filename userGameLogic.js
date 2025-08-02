@@ -10,7 +10,7 @@ loginBtn.addEventListener("click", async () => {
     return;
   }
   
-  const rooms = ["Room1", "Room2", "Room3", "Room4", "Room5", "Room6", "Room7", "Room8"];
+  const rooms = ["Room1", "Room2", "Room3", "Room4", "Room5", "Room6", "Room7", "Room8", "Room9", "Room10"];
 
   let loginSuccess = false;
   let loggedTeam = null;
@@ -411,3 +411,4 @@ function setWaitingMessage(message) {
     }
   }
 }
+
